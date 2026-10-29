@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recibo</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  body { font-family: Roboto, Arial, sans-serif; font-size: 14px; max-width: 800px; margin: 20px auto; padding: 0 12px; color: #000; }
+  input { font: inherit; border: 1px solid #ccc; border-radius: 4px; padding: 4px; width: 100%; box-sizing: border-box; background: #fffbe6; }
+  h1 { font-size: 18px; margin: 0 0 30px; padding-bottom: 20px; border-bottom: 1.5px solid #000; }
+  .meta { margin: 0 0 25px 50%; }
+  .meta input { width: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 6px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th { border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding: 12px 6px; }
+  td input { text-align: inherit; }
+  .totals { width: 50%; margin: 30px 0 0 auto; }
+  .totals td { font-weight: bold; padding: 4px 6px; text-align: right !important; }
+  .totals tr:first-child td { border-bottom: 1.5px solid #000; }
+  .totals tr:last-child td { border-bottom: 1.5px solid #000; }
+  .btns { margin: 30px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+  button { font-size: 18px; padding: 14px 20px; border-radius: 8px; border: 0; background: #2e7d32; color: #fff; cursor: pointer; }
+  button.sec { background: #888; }
+  .del { background: none; color: #c00; font-size: 18px; padding: 0 4px; }
+  @media print {
+    .btns, .del { display: none; }
+    body { margin: 0; max-width: none; padding: 0; }
+    input { border: 0; background: none; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<h1>Arroz con encanto</h1>
+<div class="meta">
+  <b>Recibo: <input id="num" size="6"></b><br>
+  Fecha <input id="fecha" size="10">
+</div>
+<table>
+  <thead><tr><th>Descripción</th><th>Cantidad</th><th>Precio Unitario</th><th>Total</th><th class="del"></th></tr></thead>
+  <tbody id="items"></tbody>
+</table>
+<table class="totals">
+  <tr><td>Subtotal</td><td id="sub"></td></tr>
+  <tr><td>Total</td><td id="tot"></td></tr>
+</table>
+<div class="btns">
+  <button onclick="imprimir()">📄 Guardar PDF</button>
+  <button class="sec" onclick="fila()">+ Agregar producto</button>
+</div>
+<script>
+const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = document.getElementById('num'), fecha = document.getElementById('fecha'), items = document.getElementById('items');
+
+num.value = localStorage.getItem('siguiente') || '00035';
+fecha.value = new Date().toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+function fila(desc = 'Arroz con leche', precio = 1000) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input value="${desc}"></td>
+    <td style="width:90px"><input class="c" type="number" inputmode="decimal" value="1" min="0"></td>
+    <td style="width:120px"><input class="p" type="number" inputmode="decimal" value="${precio}" min="0"></td>
+    <td class="t" style="width:110px"></td>
+    <td class="del"><button class="del" onclick="this.closest('tr').remove(); calc()">✕</button></td>`;
+  items.append(tr);
+  calc();
+}
+
+function calc() {
+  let total = 0;
+  for (const tr of items.rows) {
+    const t = (+tr.querySelector('.c').value || 0) * (+tr.querySelector('.p').value || 0);
+    tr.querySelector('.t').textContent = fmt(t);
+    total += t;
+  }
+  document.getElementById('sub').textContent = document.getElementById('tot').textContent = fmt(total);
+}
+items.addEventListener('input', calc);
+
+function imprimir() {
+  document.title = 'Recibo ' + num.value; // nombre del archivo PDF
+  window.print();
+}
+// en celulares print() no bloquea; subir el número solo cuando cierre el diálogo
+addEventListener('afterprint', () => {
+  num.value = String(+num.value + 1).padStart(num.value.length, '0');
+  localStorage.setItem('siguiente', num.value);
+});
+
+fila();
+</script>
+</body>
+</html>
